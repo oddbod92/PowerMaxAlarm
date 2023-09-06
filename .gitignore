@@ -308,3 +308,4 @@ $RECYCLE.BIN/
 PowerMaxWin/alarm_example2.txt
 PowerMaxWin/alarm_example1.txt
 Libraries/README_junction point.txt
+PowerMaxEsp8266/arduino_secrets.h
