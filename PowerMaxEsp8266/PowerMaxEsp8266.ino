@@ -4,6 +4,11 @@
 #include <WiFiUdp.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
+#include "arduino_secrets.h"
+
+///////////////////////////////////////////////////////////////////////////////////
+//////////////////// Need to store some UID for requests 
+String requestUID;
 
 //////////////////// IMPORTANT DEFINES, ADJUST TO YOUR NEEDS //////////////////////
 //////////////////// COMMENT DEFINE OUT to disable a feature  /////////////////////
@@ -16,6 +21,9 @@
 //This enables flashing of ESP via OTA (WiFI)
 #define PM_ENABLE_OTA_UPDATES
 
+//Set a password for OTA updates
+#define OTA_PASSWORD SECRET_OTA_PASS
+
 //This enables ESP to send a multicast UDP packet on LAN with notifications
 //Any device on your LAN can register to listen for those messages, and will get a status of the alarm
 //#define PM_ENABLE_LAN_BROADCAST
@@ -26,8 +34,8 @@ IPAddress PM_LAN_BROADCAST_IP(224, 192, 32, 12);
 #define   PM_LAN_BROADCAST_PORT  23127
 
 //Specify your WIFI settings:
-#define WIFI_SSID "??"
-#define WIFI_PASS "??"
+#define WIFI_SSID SECRET_SSID
+#define WIFI_PASS SECRET_WPA_KEY
 
 //////////////////////////////////////////////////////////////////////////////////
 //NOTE: PowerMaxAlarm class should contain ONLY functionality of Powerlink
@@ -107,8 +115,15 @@ void handleRoot() {
   minutes = val / 60;
   val -= minutes*60;
 
+  requestUID = String(millis());
+
   char szTmp[PRINTF_BUF*2];
-  sprintf(szTmp, "<html>Hello from esp8266.<br>Uptime: %02d:%02d:%02d.%02d<br>free heap: %u<br><a href='status'>Alarm Status</a></html>", (int)days, (int)hours, (int)minutes, (int)val, ESP.getFreeHeap());  
+  sprintf(szTmp, "<html><h1>PowerMax ESP-8266</h1>"
+    "<p><br>Uptime: %02d:%02d:%02d.%02d<br>"
+    "free heap: %u<br><a href='status'>Alarm Status</a><br></p>"
+    "<a href='armdisarm?cmd=d&uid=%s'>Disarm</a><br>"
+    "<a href='armdisarm?cmd=a&uid=%s'>Arm Away</a>&nbsp;<a href='armdisarm?cmd=i&uid=%s'>Arm Instant</a><br>"
+    "<a href='armdisarm?cmd=h&uid=%s'>Arm Home</a></html>", (int)days, (int)hours, (int)minutes, (int)val, ESP.getFreeHeap(), requestUID, requestUID, requestUID, requestUID);  
   server.send(200, "text/html", szTmp);
 }
 
@@ -162,7 +177,8 @@ void handleStatus() {
   WiFiClient client = server.client();
   
   client.print("HTTP/1.1 200 OK\r\n");
-  client.print("Content-Type: text/plain\r\n");
+  // client.print("Content-Type: text/plain\r\n");
+  client.print("Content-Type: application/json\r\n");
   client.print("Connection: close\r\n");
   client.print("\r\n");
 
@@ -171,6 +187,84 @@ void handleStatus() {
   out.flush();
 
   client.stop();
+}
+
+void handleArmDisarm() {
+
+  WiFiClient client = server.client();
+
+  String message = "<html>";
+
+  message = "Arguments received\n\n";
+  message += "URI: <br>";
+  message += server.uri() + " <br>";
+  message += "\nMethod:  <br>";
+  message += (server.method() == HTTP_GET)?"GET":"POST";
+  message += "\n <br> Arguments:  <br>";
+  message += server.args() + "\n";
+  message += "\n<br>";
+
+  String UID = server.arg("uid");
+  
+  if (UID != requestUID)
+  {
+      message += "<br>UID INCORRECT<br>";
+  } else {
+
+    // String c = server.arg("cmd");
+    String cmd = server.arg("cmd");
+    if (cmd != "")
+    {
+      
+      for (uint8_t i=0; i<server.args(); i++){
+        message += " " + server.argName(i) + ": " + server.arg(i) + "<br>\n";
+      }
+
+      if(pm.isConfigParsed() == false &&
+        (cmd == "h" || //arm home
+          cmd == "a" || //arm away
+          cmd == "d" ||
+          cmd == "i" ))  //disarm
+      {
+          //TODO: Handle this scenario "EPROM is not download yet (no PIN requred to perform this operation)"
+          return;
+      }
+
+      char c = cmd[0];
+      switch (c)
+      {
+        case 'h': //Arm Home
+          pm.sendCommand(Pmax_ARMHOME);
+          message += "Arm Home\n <br>";
+          break;
+        case 'd': //Disarm
+          pm.sendCommand(Pmax_DISARM);
+          message += "Disarm\n <br>";
+          break;
+        case 'a': //Arm Away
+          pm.sendCommand(Pmax_ARMAWAY);
+          message += "Arm Away\n <br>";
+          break;
+        case 'i': //Arm Instant
+          pm.sendCommand(Pmax_ARMAWAY_INSTANT);
+          message += "Arm Instand\n <br>";
+          break;
+        default:
+          message += "Incorrect command sent.\n <br>";
+        break;
+      }
+      
+    } else {
+      message += "No command sent.\n <br>";
+    }
+  }
+
+  message += "<p><a href='/'>HOME</a></p></html>";
+
+  server.send(200, "text/html", message);
+
+  //reset the requestUID so the cmd can't be resent
+  requestUID = String(millis());
 }
 
 void handleNotFound(){
@@ -193,6 +287,7 @@ void setup(void){
   Serial.begin(9600); //connect to PowerMax
 
   WiFi.mode(WIFI_STA);
+  WiFi.hostname("PowerMax ESP8266-Link");
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
   // Wait for connection
@@ -202,6 +297,7 @@ void setup(void){
 
   server.on("/", handleRoot);
   server.on("/status", handleStatus);
+  server.on("/armdisarm", handleArmDisarm);
 
   server.on("/inline", [](){
     server.send(200, "text/plain", "this works as well");
@@ -212,6 +308,7 @@ void setup(void){
 
 #ifdef PM_ENABLE_OTA_UPDATES
   ArduinoOTA.begin();
+  ArduinoOTA.setPassword(OTA_PASSWORD);
 #endif
 
 #ifdef PM_ENABLE_TELNET_ACCESS
