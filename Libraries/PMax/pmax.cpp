@@ -325,7 +325,11 @@ const char* PmaxSystemStatus[] = {
     "Home Bypass",
     "Away Bypass",
     "Ready"      ,
-    "Not Ready"
+    "Not Ready"	 ,
+    "14?UNKNOWN" ,
+    "15?UNKNOWN" ,
+    "16?UNKNOWN" ,
+    "Instant Arming"
 };
 
 const char* SystemStateFlags[] = {

@@ -78,7 +78,10 @@ enum SystemStatus
     SS_Home_Bypass = 0x0A,
     SS_Away_Bypass = 0x0B,
     SS_Ready = 0x0C,
-    SS_Not_Ready = 0x0D
+    SS_Not_Ready = 0x0D,
+// 	SS_UNKNOWN_15 = 0x0E,
+// 	SS_UNKNOWN_16 = 0x0F,
+	SS_Instant_Arming = 0x10
 };
 
 enum PmAckType
