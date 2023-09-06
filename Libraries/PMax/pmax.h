@@ -81,7 +81,12 @@ enum SystemStatus
     SS_Not_Ready = 0x0D,
 // 	SS_UNKNOWN_15 = 0x0E,
 // 	SS_UNKNOWN_16 = 0x0F,
-	SS_Instant_Arming = 0x10
+	SS_Instant_Disarmed = 0x10,
+	SS_Instant_Exit_Delay = 0x11,
+	SS_Instant_Exit_Delay2 = 0x12,
+	SS_Instant_Entry_Delay = 0x13,
+	SS_Instant_Armed_Home = 0x14,
+	SS_Instant_Armed_Away = 0x15
 };
 
 enum PmAckType

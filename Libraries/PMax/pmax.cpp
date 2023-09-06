@@ -326,10 +326,28 @@ const char* PmaxSystemStatus[] = {
     "Away Bypass",
     "Ready"      ,
     "Not Ready"	 ,
-    "14?UNKNOWN" ,
-    "15?UNKNOWN" ,
-    "16?UNKNOWN" ,
-    "Instant Arming"
+    "14??" ,
+    "15??" ,
+    "Disarmed Instant" ,
+    "Home Instant Exit Delay",
+	"Away Instant Exit Delay",
+	"Entry Delay Instant",
+	"Armed Home Instant",
+	"Armed Away Instant",
+	"22??",
+	"23??",
+	"24??",
+	"25??",
+	"26??",
+	"27??",
+	"28??",
+	"29??",
+	"30??",
+	"31??" )
+
+           
+           
+           
 };
 
 const char* SystemStateFlags[] = {
